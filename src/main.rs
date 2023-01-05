@@ -58,8 +58,6 @@ fn nav(globals: &State<Globals>, hash: &str) -> String {
         },
     };
 
-    println!("id: {:?}", id);
-
     let id = match id.first() {
         Some(id) => id,
         None => {
@@ -68,8 +66,6 @@ fn nav(globals: &State<Globals>, hash: &str) -> String {
     };
 
     let id = id.to_be_bytes();
-
-    println!("id: {:?}", id);
 
     let db = match sled::open(DB_PATH) {
         Ok(db) => db,
