@@ -1,0 +1,14 @@
+[package]
+name = "shrtnr"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+harsh = "0.2.2"
+rocket = "0.5.0-rc.2"
+sled = "0.34.7"
+tera = "1.17.1"
+
+[dependencies.rocket_dyn_templates]
+version = "0.1.0-rc.2"
+features = ["tera"]

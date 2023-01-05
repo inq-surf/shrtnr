@@ -1,0 +1,4 @@
+<form method="post">
+    <input name="url" type="text" placeholder="https://www.google.com/">
+    <input type="submit" value="Submit">
+</form>
