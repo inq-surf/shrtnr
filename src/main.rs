@@ -1,6 +1,7 @@
 #[macro_use] extern crate rocket;
 use std::collections::HashMap;
 
+use config::Config;
 use harsh::Harsh;
 use rocket::form::Form;
 use rocket::State;
@@ -16,6 +17,13 @@ struct Globals {
 #[derive(FromForm)]
 struct Url {
     url: String,
+}
+
+#[derive(Debug, Default, serde_derive::Deserialize, PartialEq, Eq)]
+struct HarshConfig {
+    salt: Option<String>,
+    length: Option<usize>,
+    alphabet: Option<String>,
 }
 
 #[get("/")]
@@ -116,11 +124,60 @@ fn nav(globals: &State<Globals>, hash: &str) -> Redirect {
     Redirect::to(url.to_string())
 }
 
+fn get_harsh() -> Harsh {
+    let config = Config::builder()
+        .add_source(
+            config::Environment::with_prefix("HARSH")
+                .try_parsing(true)
+                .separator("__")
+                .ignore_empty(true)
+        )
+        .build();
+
+    let config = match config {
+        Ok(config) => config,
+        Err(e) => {
+            println!("Error: {}", e);
+            return Harsh::default();
+        },
+    };
+
+    let config: HarshConfig = match config.try_deserialize() {
+        Ok(config) => config,
+        Err(e) => {
+            println!("Error: {}", e);
+            return Harsh::default();
+        },
+    };
+
+    let mut builder = Harsh::builder();
+
+    if let Some(salt) = config.salt {
+        builder = builder.salt(salt);
+    }
+
+    if let Some(length) = config.length {
+        builder = builder.length(length);
+    }
+
+    if let Some(alphabet) = config.alphabet {
+        builder = builder.alphabet(alphabet);
+    }
+
+    match builder.build() {
+        Ok(harsh) => harsh,
+        Err(e) => {
+            println!("Error: {}", e);
+            Harsh::default()
+        },
+    }
+}
+
 #[launch]
 fn rocket() -> _ {
     rocket::build()
         .manage(Globals {
-            harsh: Harsh::default(),
+            harsh: get_harsh(),
         })
         .mount("/", routes![get, post, nav])
         .attach(Template::fairing())

@@ -8,6 +8,9 @@ harsh = "0.2.2"
 rocket = "0.5.0-rc.2"
 sled = "0.34.7"
 tera = "1.17.1"
+config = "0.13.3"
+serde_derive = "1.0.152"
+serde = "1.0.152"
 
 [dependencies.rocket_dyn_templates]
 version = "0.1.0-rc.2"
