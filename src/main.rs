@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use harsh::Harsh;
 use rocket::form::Form;
 use rocket::State;
+use rocket::response::Redirect;
 use rocket_dyn_templates::Template;
 
 const DB_PATH: &str = "data/db";
@@ -20,48 +21,65 @@ struct Url {
 #[get("/")]
 fn get() -> Template {
     let context: HashMap<&str, &str> = HashMap::new();
+
     Template::render("index", &context)
 }
 
 #[post("/", data = "<data>")]
-fn post(globals: &State<Globals>, data: Form<Url>) -> String {
+fn post(globals: &State<Globals>, data: Form<Url>) -> Template {
+    let mut context: HashMap<&str, &str> = HashMap::new();
+
     let db = match sled::open(DB_PATH) {
         Ok(db) => db,
         Err(e) => {
-            return format!("Error: {}", e);
+            let e = e.to_string();
+            context.insert("error", &e);
+
+            return Template::render("index", &context);
         },
     };
 
     let id = match db.generate_id() {
         Ok(id) => id,
         Err(e) => {
-            return format!("Error: {}", e);
+            let e = e.to_string();
+            context.insert("error", &e);
+
+            return Template::render("index", &context);
         },
     };
 
     match db.insert(id.to_be_bytes(), data.url.as_bytes()) {
         Ok(_) => (),
         Err(e) => {
-            return format!("Error: {}", e);
+            let e = e.to_string();
+            context.insert("error", &e);
+
+            return Template::render("index", &context);
         },
     };
 
-    format!("http://localhost:8000/{}", globals.harsh.encode(&vec![id]))
+    let url = format!("http://localhost:8000/{}", globals.harsh.encode(&vec![id]));
+    context.insert("url", &url);
+
+    Template::render("index", &context)
 }
 
 #[get("/<hash>")]
-fn nav(globals: &State<Globals>, hash: &str) -> String {
+fn nav(globals: &State<Globals>, hash: &str) -> Redirect {
     let id = match globals.harsh.decode(hash) {
         Ok(id) => id,
         Err(e) => {
-            return format!("Error: {}", e);
+            println!("Error: {}", e);
+            return Redirect::to("/");
         },
     };
 
     let id = match id.first() {
         Some(id) => id,
         None => {
-            return format!("Error: No id found");
+            println!("Error: No id found");
+            return Redirect::to("/");
         },
     };
 
@@ -70,28 +88,32 @@ fn nav(globals: &State<Globals>, hash: &str) -> String {
     let db = match sled::open(DB_PATH) {
         Ok(db) => db,
         Err(e) => {
-            return format!("Error: {}", e);
+            println!("Error: {}", e);
+            return Redirect::to("/");
         },
     };
 
     let value = match db.get(id) {
         Ok(Some(value)) => value,
         Ok(None) => {
-            return format!("No value found for {}", hash);
+            println!("No value found for {}", hash);
+            return Redirect::to("/");
         },
         Err(e) => {
-            return format!("Error: {}", e);
+            println!("Error: {}", e);
+            return Redirect::to("/");
         },
     };
 
     let url = match std::str::from_utf8(&value) {
         Ok(url) => url,
         Err(e) => {
-            return format!("Error: {}", e);
+            println!("Error: {}", e);
+            return Redirect::to("/");
         },
     };
 
-    url.to_string()
+    Redirect::to(url.to_string())
 }
 
 #[launch]

@@ -1,4 +1,92 @@
-<form method="post">
-    <input name="url" type="text" placeholder="https://www.google.com/">
-    <input type="submit" value="Submit">
-</form>
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>URL Shortener</title>
+    <style>
+        body {
+            background-color: #8D6B94;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont;
+        }
+
+        form {
+            border-radius: 1rem;
+            width: 400px;
+            margin: 50vh auto;
+            box-shadow: 0 0 10rem #FFF4E9;
+            transform: translateY(-50%);
+            display: flex;
+        }
+
+        form>input:first-child {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+            border-right: none;
+        }
+
+        form>input:last-child {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+            border-left: none;
+        }
+
+        input {
+            padding: 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            outline: none;
+        }
+
+        input[type="url"] {
+            flex: 1;
+            background-color: #FFF4E9;
+            color: #33032F;
+        }
+
+        input[type="url"]::selection {
+            background-color: #8D6B94;
+            color: #FFF4E9;
+        }
+
+        input[type="submit"], input[type="button"] {
+            background-color: #33032F;
+            color: #FFF4E9;
+        }
+
+        input[type="submit"]:hover, input[type="button"]:hover {
+            opacity: 0.8;
+        }
+
+        input[type="submit"]:active, input[type="button"]:active {
+            opacity: 0.6;
+        }
+    </style>
+</head>
+
+<body>
+    <form method="post">
+        {% if error %}
+        <input name="url" type="url" placeholder="{{error}}">
+        <input type="submit" value="Shorten">
+        {% elif url %}
+        <input name="url" type="url" value="{{url}}" readonly>
+        <input type="button" value="Copy">
+        {% else %}
+        <input name="url" type="url" placeholder="https://www.google.com/">
+        <input type="submit" value="Shorten">
+        {% endif %}
+    </form>
+    
+    <script>
+        document.querySelector('input[type="button"]').addEventListener('click', () => {
+            navigator.clipboard.writeText(document.querySelector('input[name="url"]').value);
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelector('input[name="url"]').focus();
+        });
+    </script>
+</body>
+
+</html>

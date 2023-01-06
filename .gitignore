@@ -17,3 +17,4 @@ Cargo.lock
 # Misc
 .vscode
 .DS_Store
+data/
