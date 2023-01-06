@@ -1,6 +1,8 @@
 # shrtnr
 Url shortener written in [Rust](https://www.rust-lang.org/) *just to touch a totally new stack*.
 
+![Preview](/preview.jpg "shrtnr")
+
 ## Used libs
 * [Rocket](https://rocket.rs/) - framework
 * [Sled](https://docs.rs/sled/0.34.7/sled/) - storage layer
