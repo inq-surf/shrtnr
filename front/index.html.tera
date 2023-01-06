@@ -20,13 +20,13 @@
             display: flex;
         }
 
-        form>input:first-child {
+        form>input:first-of-type {
             border-top-right-radius: 0;
             border-bottom-right-radius: 0;
             border-right: none;
         }
 
-        form>input:last-child {
+        form>input:last-of-type {
             border-top-left-radius: 0;
             border-bottom-left-radius: 0;
             border-left: none;
@@ -62,31 +62,69 @@
         input[type="submit"]:active, input[type="button"]:active {
             opacity: 0.6;
         }
+
+        a {
+            color: #FFF4E9;
+        }
+
+        #index {
+            position: absolute;
+            width: 100%;
+            bottom: -1.5rem;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        #index a {
+            text-decoration: none;
+        }
+
+        #credits {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            padding: 1rem;
+            color: #FFF4E9;
+            text-align: right;
+            font-size: 0.8rem;
+        }
     </style>
 </head>
 
 <body>
     <form method="post">
         {% if error %}
-        <input name="url" type="url" placeholder="{{error}}">
+        <input name="url" type="url" autofocus placeholder="{{error}}">
         <input type="submit" value="Shorten">
         {% elif url %}
         <input name="url" type="url" value="{{url}}" readonly>
         <input type="button" value="Copy">
         {% else %}
-        <input name="url" type="url" placeholder="https://www.google.com/">
+        <input name="url" type="url" autofocus placeholder="https://www.google.com/">
         <input type="submit" value="Shorten">
+        {% endif %}
+
+        {% if url %}
+        <div id="index">
+            <a href="/">↻ i have more links to shorten</a>
+        </div>
         {% endif %}
     </form>
     
     <script>
-        document.querySelector('input[type="button"]').addEventListener('click', () => {
+        document.querySelector('input[type="button"]').addEventListener('click', function () {
             navigator.clipboard.writeText(document.querySelector('input[name="url"]').value);
         });
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded',function () {
             document.querySelector('input[name="url"]').focus();
         });
     </script>
+
+    <div id="credits">
+        &copy; 2023 by <a href="https://qrd.wtf/">qrdwtf</a><br>
+        Made with <a href="https://rocket.rs/">Rocket</a> and <a href="https://www.rust-lang.org/">Rust</a><br>
+        Source code on <a href="https://github.com/inq-surf/shrtnr">GitHub</a>
+    </div>
 </body>
 
 </html>

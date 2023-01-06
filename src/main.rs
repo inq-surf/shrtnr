@@ -1,7 +1,7 @@
 #[macro_use] extern crate rocket;
 use std::collections::HashMap;
 
-use config::Config;
+use config::{Config, ConfigError};
 use harsh::Harsh;
 use rocket::form::Form;
 use rocket::State;
@@ -27,6 +27,11 @@ struct HarshConfig {
     alphabet: Option<String>,
 }
 
+#[derive(Debug, Default, serde_derive::Deserialize, PartialEq, Eq)]
+struct ShrtnrConfig {
+    host: String,
+}
+
 #[get("/")]
 fn get() -> Template {
     let context: HashMap<&str, &str> = HashMap::new();
@@ -40,6 +45,16 @@ fn post(globals: &State<Globals>, data: Form<Url>) -> Template {
 
     match Uri::parse::<Absolute>(&data.url) {
         Ok(_) => (),
+        Err(e) => {
+            let e = e.to_string();
+            context.insert("error", &e);
+
+            return Template::render("index", &context);
+        },
+    };
+
+    let host = match get_config::<ShrtnrConfig>("SHRTNR") {
+        Ok(config) => config.host,
         Err(e) => {
             let e = e.to_string();
             context.insert("error", &e);
@@ -78,7 +93,7 @@ fn post(globals: &State<Globals>, data: Form<Url>) -> Template {
         },
     };
 
-    let url = format!("http://localhost:8000/{}", globals.harsh.encode(&vec![id]));
+    let url = format!("{}/{}", host, globals.harsh.encode(&vec![id]));
     context.insert("url", &url);
 
     Template::render("index", &context)
@@ -136,24 +151,7 @@ fn nav(globals: &State<Globals>, hash: &str) -> Redirect {
 }
 
 fn get_harsh() -> Harsh {
-    let config = Config::builder()
-        .add_source(
-            config::Environment::with_prefix("HARSH")
-                .try_parsing(true)
-                .separator("__")
-                .ignore_empty(true)
-        )
-        .build();
-
-    let config = match config {
-        Ok(config) => config,
-        Err(e) => {
-            println!("Error: {}", e);
-            return Harsh::default();
-        },
-    };
-
-    let config: HarshConfig = match config.try_deserialize() {
+    let config: HarshConfig = match get_config("HARSH") {
         Ok(config) => config,
         Err(e) => {
             println!("Error: {}", e);
@@ -180,6 +178,34 @@ fn get_harsh() -> Harsh {
         Err(e) => {
             println!("Error: {}", e);
             Harsh::default()
+        },
+    }
+}
+
+fn get_config<T>(prefix: &str) -> Result<T, ConfigError>
+where
+    T: serde::de::DeserializeOwned,
+{
+    let config = Config::builder()
+        .add_source(
+            config::Environment::with_prefix(prefix)
+                .try_parsing(true)
+                .separator("__")
+                .ignore_empty(true)
+        )
+        .build();
+
+    let config = match config {
+        Ok(config) => config,
+        Err(e) => {
+            return Result::Err(e);
+        },
+    };
+
+    match config.try_deserialize() {
+        Ok(config) => Result::Ok(config),
+        Err(e) => {
+            return Result::Err(e);
         },
     }
 }
