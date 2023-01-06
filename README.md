@@ -10,7 +10,7 @@ Url shortener written in [Rust](https://www.rust-lang.org/) *just to touch a tot
 Configuration values are loaded from environment, thanks to [config-rs](https://docs.rs/config/0.13.3).
 | Name | Required | Description |
 | ---- | --- | ----------- |
-| SHRTNT__HOST | ✅ | Base url for generated URL |
+| SHRTNR__HOST | ✅ | Base url for generated URL |
 | HARSH__SALT | | Init value for Harsh |
 | HARSH__LENGTH | | Minimal hash length |
 | HARSH__ALPHABET | | Symbols allowed in hash |
