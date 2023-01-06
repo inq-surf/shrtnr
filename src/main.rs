@@ -5,6 +5,7 @@ use config::Config;
 use harsh::Harsh;
 use rocket::form::Form;
 use rocket::State;
+use rocket::http::uri::{Uri, Absolute};
 use rocket::response::Redirect;
 use rocket_dyn_templates::Template;
 
@@ -36,6 +37,16 @@ fn get() -> Template {
 #[post("/", data = "<data>")]
 fn post(globals: &State<Globals>, data: Form<Url>) -> Template {
     let mut context: HashMap<&str, &str> = HashMap::new();
+
+    match Uri::parse::<Absolute>(&data.url) {
+        Ok(_) => (),
+        Err(e) => {
+            let e = e.to_string();
+            context.insert("error", &e);
+
+            return Template::render("index", &context);
+        },
+    };
 
     let db = match sled::open(DB_PATH) {
         Ok(db) => db,
