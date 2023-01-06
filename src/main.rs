@@ -10,6 +10,8 @@ use rocket::response::Redirect;
 use rocket_dyn_templates::Template;
 
 const DB_PATH: &str = "data/db";
+const SHRTNR_CONFIG_PREFIX: &str = "SHRTNR";
+const HARSH_CONFIG_PREFIX: &str = "HARSH";
 
 struct Globals {
     harsh: Harsh,
@@ -53,7 +55,7 @@ fn post(globals: &State<Globals>, data: Form<Url>) -> Template {
         },
     };
 
-    let host = match get_config::<ShrtnrConfig>("SHRTNR") {
+    let host = match get_config::<ShrtnrConfig>(SHRTNR_CONFIG_PREFIX) {
         Ok(config) => config.host,
         Err(e) => {
             let e = e.to_string();
@@ -151,7 +153,7 @@ fn nav(globals: &State<Globals>, hash: &str) -> Redirect {
 }
 
 fn get_harsh() -> Harsh {
-    let config: HarshConfig = match get_config("HARSH") {
+    let config: HarshConfig = match get_config(HARSH_CONFIG_PREFIX) {
         Ok(config) => config,
         Err(e) => {
             println!("Error: {}", e);
