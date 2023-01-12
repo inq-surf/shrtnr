@@ -86,7 +86,6 @@ fn nav(globals: &State<global::Globals>, hash: &str) -> Redirect {
 
 #[launch]
 fn rocket() -> _ {
-    std::env::set_var("SHRTNR__HOST", "development");
     rocket::build()
         .manage(global::Globals::new())
         .mount("/", routes![get, post, nav])
