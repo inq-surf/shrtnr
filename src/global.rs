@@ -4,7 +4,7 @@ use harsh::Harsh;
 const SHRTNR_CONFIG_PREFIX: &str = "SHRTNR";
 const HARSH_CONFIG_PREFIX: &str = "HARSH";
 
-pub trait ConfigSection {
+pub trait LoadConfig {
     fn load<T>() -> Result<T, ConfigError>
     where
         T: serde::de::DeserializeOwned;
@@ -41,7 +41,7 @@ pub struct HarshConfig {
     pub alphabet: Option<String>,
 }
 
-impl ConfigSection for HarshConfig {
+impl LoadConfig for HarshConfig {
     fn load<T>() -> Result<T, ConfigError>
         where
             T: serde::de::DeserializeOwned {
@@ -54,7 +54,7 @@ pub struct ShrtnrConfig {
     pub host: String,
 }
 
-impl ConfigSection for ShrtnrConfig {
+impl LoadConfig for ShrtnrConfig {
     fn load<T>() -> Result<T, ConfigError>
         where
             T: serde::de::DeserializeOwned {
