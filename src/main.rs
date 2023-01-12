@@ -39,7 +39,8 @@ fn post(globals: &State<global::Globals>, data: Form<Url>) -> Template {
     let id = match shrtnr::add(&data.url) {
         Ok(id) => id,
         Err(e) => {
-            println!("Error: {}", e);
+            context.insert("error", &e);
+
             return Template::render("index", &context);
         },
     };
@@ -85,6 +86,7 @@ fn nav(globals: &State<global::Globals>, hash: &str) -> Redirect {
 
 #[launch]
 fn rocket() -> _ {
+    std::env::set_var("SHRTNR__HOST", "development");
     rocket::build()
         .manage(global::Globals::new())
         .mount("/", routes![get, post, nav])
