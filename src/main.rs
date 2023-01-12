@@ -1,37 +1,18 @@
 #[macro_use] extern crate rocket;
 use std::collections::HashMap;
 
-use config::{Config, ConfigError};
-use harsh::Harsh;
 use rocket::form::Form;
 use rocket::State;
 use rocket::http::uri::{Uri, Absolute};
 use rocket::response::Redirect;
 use rocket_dyn_templates::Template;
 
-const DB_PATH: &str = "data/db";
-const SHRTNR_CONFIG_PREFIX: &str = "SHRTNR";
-const HARSH_CONFIG_PREFIX: &str = "HARSH";
-
-struct Globals {
-    harsh: Harsh,
-}
+mod global;
+mod shrtnr;
 
 #[derive(FromForm)]
 struct Url {
     url: String,
-}
-
-#[derive(Debug, Default, serde_derive::Deserialize, PartialEq, Eq)]
-struct HarshConfig {
-    salt: Option<String>,
-    length: Option<usize>,
-    alphabet: Option<String>,
-}
-
-#[derive(Debug, Default, serde_derive::Deserialize, PartialEq, Eq)]
-struct ShrtnrConfig {
-    host: String,
 }
 
 #[get("/")]
@@ -42,7 +23,7 @@ fn get() -> Template {
 }
 
 #[post("/", data = "<data>")]
-fn post(globals: &State<Globals>, data: Form<Url>) -> Template {
+fn post(globals: &State<global::Globals>, data: Form<Url>) -> Template {
     let mut context: HashMap<&str, &str> = HashMap::new();
 
     match Uri::parse::<Absolute>(&data.url) {
@@ -55,54 +36,26 @@ fn post(globals: &State<Globals>, data: Form<Url>) -> Template {
         },
     };
 
-    let host = match get_config::<ShrtnrConfig>(SHRTNR_CONFIG_PREFIX) {
-        Ok(config) => config.host,
-        Err(e) => {
-            let e = e.to_string();
-            context.insert("error", &e);
-
-            return Template::render("index", &context);
-        },
-    };
-
-    let db = match sled::open(DB_PATH) {
-        Ok(db) => db,
-        Err(e) => {
-            let e = e.to_string();
-            context.insert("error", &e);
-
-            return Template::render("index", &context);
-        },
-    };
-
-    let id = match db.generate_id() {
+    let id = match shrtnr::add(&data.url) {
         Ok(id) => id,
         Err(e) => {
-            let e = e.to_string();
-            context.insert("error", &e);
-
+            println!("Error: {}", e);
             return Template::render("index", &context);
         },
     };
 
-    match db.insert(id.to_be_bytes(), data.url.as_bytes()) {
-        Ok(_) => (),
-        Err(e) => {
-            let e = e.to_string();
-            context.insert("error", &e);
-
-            return Template::render("index", &context);
-        },
-    };
-
-    let url = format!("{}/{}", host, globals.harsh.encode(&vec![id]));
+    let url = format!(
+        "{}/{}",
+        globals.shrtnr_config.host,
+        globals.harsh.encode(&vec![id])
+    );
     context.insert("url", &url);
 
     Template::render("index", &context)
 }
 
 #[get("/<hash>")]
-fn nav(globals: &State<Globals>, hash: &str) -> Redirect {
+fn nav(globals: &State<global::Globals>, hash: &str) -> Redirect {
     let id = match globals.harsh.decode(hash) {
         Ok(id) => id,
         Err(e) => {
@@ -119,29 +72,7 @@ fn nav(globals: &State<Globals>, hash: &str) -> Redirect {
         },
     };
 
-    let id = id.to_be_bytes();
-
-    let db = match sled::open(DB_PATH) {
-        Ok(db) => db,
-        Err(e) => {
-            println!("Error: {}", e);
-            return Redirect::to("/");
-        },
-    };
-
-    let value = match db.get(id) {
-        Ok(Some(value)) => value,
-        Ok(None) => {
-            println!("No value found for {}", hash);
-            return Redirect::to("/");
-        },
-        Err(e) => {
-            println!("Error: {}", e);
-            return Redirect::to("/");
-        },
-    };
-
-    let url = match std::str::from_utf8(&value) {
+    let url = match shrtnr::get(id) {
         Ok(url) => url,
         Err(e) => {
             println!("Error: {}", e);
@@ -152,72 +83,10 @@ fn nav(globals: &State<Globals>, hash: &str) -> Redirect {
     Redirect::to(url.to_string())
 }
 
-fn get_harsh() -> Harsh {
-    let config: HarshConfig = match get_config(HARSH_CONFIG_PREFIX) {
-        Ok(config) => config,
-        Err(e) => {
-            println!("Error: {}", e);
-            return Harsh::default();
-        },
-    };
-
-    let mut builder = Harsh::builder();
-
-    if let Some(salt) = config.salt {
-        builder = builder.salt(salt);
-    }
-
-    if let Some(length) = config.length {
-        builder = builder.length(length);
-    }
-
-    if let Some(alphabet) = config.alphabet {
-        builder = builder.alphabet(alphabet);
-    }
-
-    match builder.build() {
-        Ok(harsh) => harsh,
-        Err(e) => {
-            println!("Error: {}", e);
-            Harsh::default()
-        },
-    }
-}
-
-fn get_config<T>(prefix: &str) -> Result<T, ConfigError>
-where
-    T: serde::de::DeserializeOwned,
-{
-    let config = Config::builder()
-        .add_source(
-            config::Environment::with_prefix(prefix)
-                .try_parsing(true)
-                .separator("__")
-                .ignore_empty(true)
-        )
-        .build();
-
-    let config = match config {
-        Ok(config) => config,
-        Err(e) => {
-            return Result::Err(e);
-        },
-    };
-
-    match config.try_deserialize() {
-        Ok(config) => Result::Ok(config),
-        Err(e) => {
-            return Result::Err(e);
-        },
-    }
-}
-
 #[launch]
 fn rocket() -> _ {
     rocket::build()
-        .manage(Globals {
-            harsh: get_harsh(),
-        })
+        .manage(global::Globals::new())
         .mount("/", routes![get, post, nav])
         .attach(Template::fairing())
 }
