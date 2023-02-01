@@ -10,6 +10,8 @@ use rocket_dyn_templates::Template;
 mod global;
 mod shrtnr;
 
+use global::Globals;
+
 #[derive(FromForm)]
 struct Url {
     url: String,
@@ -23,7 +25,7 @@ fn get() -> Template {
 }
 
 #[post("/", data = "<data>")]
-fn post(globals: &State<global::Globals>, data: Form<Url>) -> Template {
+fn post(globals: &State<Globals>, data: Form<Url>) -> Template {
     let mut context: HashMap<&str, &str> = HashMap::new();
 
     match Uri::parse::<Absolute>(&data.url) {
@@ -56,7 +58,7 @@ fn post(globals: &State<global::Globals>, data: Form<Url>) -> Template {
 }
 
 #[get("/<hash>")]
-fn nav(globals: &State<global::Globals>, hash: &str) -> Redirect {
+fn nav(globals: &State<Globals>, hash: &str) -> Redirect {
     let id = match globals.harsh.decode(hash) {
         Ok(id) => id,
         Err(e) => {
@@ -87,7 +89,7 @@ fn nav(globals: &State<global::Globals>, hash: &str) -> Redirect {
 #[launch]
 fn rocket() -> _ {
     rocket::build()
-        .manage(global::Globals::new())
+        .manage(Globals::new())
         .mount("/", routes![get, post, nav])
         .attach(Template::fairing())
 }
